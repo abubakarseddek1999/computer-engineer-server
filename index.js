@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
-const jwt =require('jsonwebtoken')
-const cookieParser =require('cookie-parser')
+const jwt = require('jsonwebtoken')
+const cookieParser = require('cookie-parser')
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config()
 const app = express();
@@ -39,22 +39,22 @@ const client = new MongoClient(uri, {
 
 
 // middleware
-const logger =(req,res,next)=>{
-    console.log('log: info',req.method,req.url);
+const logger = (req, res, next) => {
+    console.log('log: info', req.method, req.url);
     next();
 }
-const verifyToken =(req,res,next)=>{
-    const token =req?.cookies?.token;
+const verifyToken = (req, res, next) => {
+    const token = req?.cookies?.token;
     // console.log('token in the middleware', token);
 
-    if(!token){
-        return res.status(401).send({message: 'unauthorized access'})
+    if (!token) {
+        return res.status(401).send({ message: 'unauthorized access' })
     }
-    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET,(err,decoded)=>{
-        if(err){
-            return res.status(401).send({message: 'unauthorized access'})
+    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+        if (err) {
+            return res.status(401).send({ message: 'unauthorized access' })
         }
-        req.user =decoded;
+        req.user = decoded;
         next();
     })
 
@@ -71,23 +71,23 @@ async function run() {
 
         // auth related api
 
-        app.post('/jwt',logger,async(req, res) => {   
-            const user =req.body;
-            console.log('user for token',user);
-            const token =jwt.sign(user,process.env.ACCESS_TOKEN_SECRET,{expiresIn:'1h'})
+        app.post('/jwt', logger, async (req, res) => {
+            const user = req.body;
+            console.log('user for token', user);
+            const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' })
             res.cookie('token', token, {
-                httpOnly:true,
-                secure:true,
-                sameSite:'none'
+                httpOnly: true,
+                secure: true,
+                sameSite: 'none'
             })
-            .send({success: true});
+                .send({ success: true });
 
         })
 
-        app.post('/logout',async(req,res)=>{
-            const user =req.body;
-            console.log('logging out',user);
-            res.clearCookie('token',{maxAge:0}).send({success:true})
+        app.post('/logout', async (req, res) => {
+            const user = req.body;
+            console.log('logging out', user);
+            res.clearCookie('token', { maxAge: 0 }).send({ success: true })
         })
 
         // services related api
@@ -104,7 +104,7 @@ async function run() {
             const options = {
 
                 // Include only the `title` and `imdb` fields in the returned document
-                projection: { title: 1, service_id: 1, price: 1,img:1 },
+                projection: { title: 1, service_id: 1, price: 1, img: 1 },
             };
 
 
@@ -114,25 +114,25 @@ async function run() {
 
         // Booking
 
-        app.get('/bookings',logger,verifyToken, async(req,res)=>{
-            console.log("hi man" ,req.query.email);
+        app.get('/bookings', logger, verifyToken, async (req, res) => {
+            console.log("hi man", req.query.email);
             console.log('token owner info', req.user);
-            if(req.user.email !== req.query.email ){
-                return res.status(403).send({message: 'forbidden access'})
+            if (req.user.email !== req.query.email) {
+                return res.status(403).send({ message: 'forbidden access' })
             }
-            let query ={};
-            if(req.query?.email){
-                query ={email: req.query.email}
+            let query = {};
+            if (req.query?.email) {
+                query = { email: req.query.email }
             }
 
             const result = await bookingCollection.find(query).toArray();
             res.send(result);
         })
 
-        app.post('/bookings', async(req, res)=>{
-            const booking= req.body;
+        app.post('/bookings', async (req, res) => {
+            const booking = req.body;
             console.log(booking);
-            const result =await bookingCollection.insertOne(booking);
+            const result = await bookingCollection.insertOne(booking);
             res.send(result);
 
 
@@ -144,11 +144,11 @@ async function run() {
             console.log(newServices);
             const result = await serviceCollection.insertOne(newServices);
             res.send(result)
-          })
+        })
 
-        app.patch('/bookings/:id', async(req, res) =>{
-            const id =req.params.id;
-            const filter = {_id: new ObjectId(id)};
+        app.patch('/bookings/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) };
             const updatedBooking = req.body;
             console.log(updatedBooking);
             const updateDoc = {
@@ -162,18 +162,40 @@ async function run() {
         })
 
 
-        app.delete('/bookings/:id', async(req,res)=>{
-            const id =req.params.id;
-            const query ={_id: new ObjectId(id)}
-            const result =await bookingCollection.deleteOne(query);
+        app.delete('/bookings/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const result = await bookingCollection.deleteOne(query);
             res.send(result);
         })
 
+        // update product
+        app.put('/services/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) }
+            const options = { upsert: true };
+            const updatedService = req.body;
+            const service = {
+                $set: {
+                    title: updatedService.title,
+                    img: updatedService.img,
+                    price: updatedService.price,
+                    description: updatedService.description,
+                    service_provider: updatedService.service_provider,
+                  
+
+                }
+            }
+            const result = await serviceCollection.updateOne(filter, service, options)
+            res.send(result)
+
+        })
+
         // services delete
-        app.delete('/services/:id', async(req,res)=>{
-            const id =req.params.id;
-            const query ={_id: new ObjectId(id)}
-            const result =await serviceCollection.deleteOne(query);
+        app.delete('/services/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const result = await serviceCollection.deleteOne(query);
             res.send(result);
         })
 
