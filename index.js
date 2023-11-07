@@ -138,6 +138,14 @@ async function run() {
 
         })
 
+        // add service
+        app.post('/services', async (req, res) => {
+            const newServices = req.body;
+            console.log(newServices);
+            const result = await serviceCollection.insertOne(newServices);
+            res.send(result)
+          })
+
         app.patch('/bookings/:id', async(req, res) =>{
             const id =req.params.id;
             const filter = {_id: new ObjectId(id)};
@@ -158,6 +166,14 @@ async function run() {
             const id =req.params.id;
             const query ={_id: new ObjectId(id)}
             const result =await bookingCollection.deleteOne(query);
+            res.send(result);
+        })
+
+        // services delete
+        app.delete('/services/:id', async(req,res)=>{
+            const id =req.params.id;
+            const query ={_id: new ObjectId(id)}
+            const result =await serviceCollection.deleteOne(query);
             res.send(result);
         })
 
