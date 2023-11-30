@@ -13,9 +13,11 @@ const port = process.env.PORT || 5000;
 // middleware
 app.use(cors({
     origin: [
-        'http://localhost:5173'
+        // 'http://localhost:5173',
+        "https://computer-engineer-879da.web.app",
+        "https://computer-engineer-879da.firebaseapp.com"
     ],
-    credentials: true
+    credentials: true,
 }));
 
 app.use(express.json());
@@ -182,7 +184,7 @@ async function run() {
                     price: updatedService.price,
                     description: updatedService.description,
                     service_provider: updatedService.service_provider,
-                  
+
 
                 }
             }
